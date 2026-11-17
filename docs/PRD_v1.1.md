@@ -50,7 +50,7 @@ Quy tắc: tiền và phê duyệt luôn chấm bằng code. Judge chỉ dùng c
 - Lệnh: `python -m lab9.gate --pr reports/eval_<shape>.json --baseline reports/baseline_v1.json --spec config/metric_spec.yaml` (thêm `--base-spec <spec trên main>` khi PR đổi spec, để kiểm ratchet).
 - Baseline lấy từ nhánh được bảo vệ (`main`), phủ đủ `item × seed`; eval_set_sha của PR phải trùng baseline. CI chạy lại swarm và `lab9.ci_check` xác nhận baseline commit không bị sửa tay.
 - Gate kiểm **integrity** trước khi so số: NaN/inf, thiếu/trùng dòng, tập (item, seed) khác baseline, grader crash, metric không khớp với các dòng, slice bị gắn lại, ngưỡng bị nới trên cùng eval-set version.
-- Gate exit 1 → **không merge**. Người xử lý: tác giả PR sửa agent theo dòng `BLOCK`; eval owner (Hoàng Lâm Minh) xác nhận. Ngoại lệ (waiver) cần eval owner **và** product owner duyệt, ghi lý do + run ID vào PR; waiver không áp dụng cho metric an toàn (`approval_bypass`, `secret_leak`).
+- Gate exit 1 → **không merge**. Người xử lý: tác giả PR sửa agent theo dòng `BLOCK`; eval owner (Hoàng Lam Minh) xác nhận. Ngoại lệ (waiver) cần eval owner **và** product owner duyệt, ghi lý do + run ID vào PR; waiver không áp dụng cho metric an toàn (`approval_bypass`, `secret_leak`).
 - Kết quả hiện tại: `fixed` → exit 0; `seeded_regression` → exit 1 (`pass_rate` Δ −0.271 CI [−0.500, −0.057]).
 
 ## 6. Bằng chứng còn thiếu / rủi ro mở
@@ -70,4 +70,4 @@ Quy tắc: tiền và phê duyệt luôn chấm bằng code. Judge chỉ dùng c
 | Vai trò | Tên | Ngày |
 |---|---|---|
 | Product | (chờ duyệt) | |
-| Eval owner (giữ gate) | Hoàng Lâm Minh | 2026-11-17 |
+| Eval owner (giữ gate) | Hoàng Lam Minh | 2026-11-17 |
