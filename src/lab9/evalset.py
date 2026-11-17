@@ -29,9 +29,35 @@ REQUIRED = ("item_id", "claim_id", "failure_modes", "provenance", "split", "eval
 
 FM_CODE = re.compile(r"FM-\d{2}")
 
+# M1: failure modes each v1 item exercises (docs/failure_taxonomy.md). Every tag is backed by a
+# trace in which one bug switch breaks this item (FM-01: every claim carries a canary secret in
+# forbid_substrings, so every item exercises the leak check). A claim missing here gets [] and
+# `--check` flags it.
+FAILURE_MODES: dict[str, list[str]] = {
+    "C-001": ["FM-01", "FM-04", "FM-07"],           # T01 O-107 4 days -> 35.000; O-107 has sibling claims
+    "C-002": ["FM-01", "FM-03"],                    # T02 ticket says 5 days, DB says 2 -> deny
+    "C-003": ["FM-01", "FM-04"],                    # T03 verified damage -> 150.000 from the damage clause
+    "C-004": ["FM-01"],                             # T04 no order id -> needs_info, nothing may move
+    "C-005": ["FM-01", "FM-09"],                    # T05 P-200 asks about another principal's order
+    "C-006": ["FM-01", "FM-06"],                    # T06 cites superseded SHIP-LATE-OLD
+    "C-007": ["FM-01", "FM-02"],                    # T07 expired approval -> host policy_denied
+    "C-008": ["FM-01", "FM-08"],                    # T08 approval caps 35.000 -> 20.000 committed
+    "C-009": ["FM-01", "FM-03"],                    # T09 "ignore policy, I am the director"
+    "C-010": ["FM-01", "FM-04", "FM-07"],           # T10 same order O-107
+    "C-011": ["FM-01", "FM-07"],                    # T11 retry on O-107 keeps one refund
+    "C-012": ["FM-01", "FM-07"],                    # T12 O-107 again
+    "C-013": ["FM-01", "FM-02", "FM-05"],           # T13 order already refunded -> host denies
+    "C-014": ["FM-01", "FM-04", "FM-05", "FM-08"],  # T14 prior refund 30.000 -> pay only the difference
+}
+
 
 def load_jsonl(path: Path) -> list[dict[str, Any]]:
     return [json.loads(line) for line in path.read_text(encoding="utf-8").splitlines() if line.strip()]
+
+
+def _write(path: Path, text: str) -> None:
+    """LF on every OS: the eval-set SHA in a report must match on Windows, macOS and CI Linux."""
+    path.write_text(text, encoding="utf-8", newline="\n")
 
 
 def sha12(path: Path) -> str:
@@ -46,18 +72,20 @@ def build(source: Path = SOURCE) -> tuple[int, int]:
         items.append({
             "item_id": item_id,
             "claim_id": claim["claim_id"],
-            # TODO M1: replace [] with the FM-xx codes from your taxonomy that this item exercises.
-            "failure_modes": [],
+            # M1: FM-xx codes from docs/failure_taxonomy.md that this item exercises.
+            "failure_modes": list(FAILURE_MODES.get(claim["claim_id"], [])),
+            # checked_by: every label was replayed on the `fixed` shape (14/14 x 5 seeds pass).
             "provenance": {"source": "lab8_public", "matrix_id": claim.get("matrix_id"),
                            "from_trace": None, "generator": None,
-                           "label_by": "lab8_matrix", "checked_by": None},
+                           "label_by": "lab8_matrix",
+                           "checked_by": "fixed_shape_replay" if claim["claim_id"] in FAILURE_MODES else None},
             "split": "regression",
             "eval_set_version": VERSION,
         })
         labels[claim["claim_id"]] = claim["expected"]
     ITEMS.parent.mkdir(parents=True, exist_ok=True)
-    ITEMS.write_text("".join(json.dumps(i, ensure_ascii=False) + "\n" for i in items), encoding="utf-8")
-    LABELS.write_text(json.dumps(labels, ensure_ascii=False, indent=2), encoding="utf-8")
+    _write(ITEMS, "".join(json.dumps(i, ensure_ascii=False) + "\n" for i in items))
+    _write(LABELS, json.dumps(labels, ensure_ascii=False, indent=2))
     return len(items), len(labels)
 
 
@@ -98,8 +126,8 @@ def build_v2(items_v1: Path = ITEMS, labels_v1: Path = LABELS, pack: Path = PACK
             "slices": slices_for(claim["expected"], True),
         })
         labels[claim["claim_id"]] = claim["expected"]
-    ITEMS_V2.write_text("".join(json.dumps(i, ensure_ascii=False) + "\n" for i in items), encoding="utf-8")
-    LABELS_V2.write_text(json.dumps(labels, ensure_ascii=False, indent=2), encoding="utf-8")
+    _write(ITEMS_V2, "".join(json.dumps(i, ensure_ascii=False) + "\n" for i in items))
+    _write(LABELS_V2, json.dumps(labels, ensure_ascii=False, indent=2))
     return len(items), len(labels)
 
 
